@@ -1,0 +1,261 @@
+.detail-page {
+    min-height: 100vh;
+    background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+    padding: 2rem;
+}
+
+.detail-container {
+    max-width: 1000px;
+    margin: 0 auto;
+}
+
+.back-button {
+    background: white;
+    color: #667eea;
+    border: none;
+    padding: 0.75rem 1.5rem;
+    border-radius: 8px;
+    font-weight: 600;
+    cursor: pointer;
+    margin-bottom: 1.5rem;
+    transition: all 0.3s ease;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+}
+
+.back-button:hover {
+    transform: translateX(-4px);
+    box-shadow: 0 4px 12px rgba(255, 255, 255, 0.3);
+}
+
+.invoice-detail-card {
+    background: white;
+    border-radius: 16px;
+    padding: 2.5rem;
+    box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+}
+
+.invoice-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    padding-bottom: 2rem;
+    border-bottom: 3px solid #edf2f7;
+    margin-bottom: 2rem;
+}
+
+.invoice-header h1 {
+    margin: 0 0 0.5rem 0;
+    color: #2d3748;
+    font-size: 2rem;
+}
+
+.invoice-meta {
+    color: #718096;
+    margin: 0;
+}
+
+.invoice-total-badge {
+    background: linear-gradient(135deg, #48bb78 0%, #38a169 100%);
+    color: white;
+    padding: 1rem 2rem;
+    border-radius: 12px;
+    font-size: 1.8rem;
+    font-weight: 700;
+    box-shadow: 0 4px 12px rgba(72, 187, 120, 0.3);
+}
+
+.invoice-info-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+    gap: 1.5rem;
+    margin-bottom: 2.5rem;
+}
+
+.info-item {
+    background: #f7fafc;
+    padding: 1.25rem;
+    border-radius: 10px;
+    display: flex;
+    flex-direction: column;
+    gap: 0.5rem;
+}
+
+.info-label {
+    color: #718096;
+    font-size: 0.85rem;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+}
+
+.info-value {
+    color: #2d3748;
+    font-size: 1.1rem;
+    font-weight: 600;
+}
+
+.items-section {
+    margin-bottom: 2rem;
+}
+
+.items-section h2 {
+    color: #2d3748;
+    margin: 0 0 1.5rem 0;
+    font-size: 1.5rem;
+}
+
+.items-table {
+    border: 2px solid #edf2f7;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.table-header {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    background: #667eea;
+    color: white;
+    font-weight: 600;
+    padding: 1rem;
+    gap: 1rem;
+}
+
+.table-row {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr 1fr;
+    padding: 1rem;
+    gap: 1rem;
+    border-bottom: 1px solid #edf2f7;
+    transition: background 0.2s ease;
+}
+
+.table-row:hover {
+    background: #f7fafc;
+}
+
+.table-row:last-child {
+    border-bottom: none;
+}
+
+.col-name {
+    color: #2d3748;
+    font-weight: 500;
+}
+
+.col-qty,
+.col-price,
+.col-total {
+    text-align: right;
+    color: #4a5568;
+}
+
+.table-footer {
+    display: grid;
+    grid-template-columns: 3fr 1fr;
+    background: #f7fafc;
+    padding: 1.25rem 1rem;
+    gap: 1rem;
+    border-top: 2px solid #667eea;
+}
+
+.footer-label {
+    text-align: right;
+    font-weight: 700;
+    color: #2d3748;
+    font-size: 1.1rem;
+}
+
+.footer-value {
+    text-align: right;
+    font-weight: 700;
+    color: #48bb78;
+    font-size: 1.3rem;
+}
+
+.raw-text-section {
+    margin-top: 2rem;
+    border: 2px solid #edf2f7;
+    border-radius: 12px;
+    overflow: hidden;
+}
+
+.raw-text-section summary {
+    background: #f7fafc;
+    padding: 1rem;
+    cursor: pointer;
+    font-weight: 600;
+    color: #2d3748;
+    user-select: none;
+}
+
+.raw-text-section summary:hover {
+    background: #edf2f7;
+}
+
+.raw-text {
+    background: #2d3748;
+    color: #e2e8f0;
+    padding: 1.5rem;
+    margin: 0;
+    font-family: 'Courier New', monospace;
+    font-size: 0.85rem;
+    line-height: 1.6;
+    overflow-x: auto;
+    white-space: pre-wrap;
+    word-wrap: break-word;
+}
+
+.loading-state,
+.error-state {
+    background: white;
+    padding: 4rem 2rem;
+    border-radius: 16px;
+    text-align: center;
+    box-shadow: 0 10px 30px rgba(0, 0, 0, 0.2);
+}
+
+.spinner-large {
+    width: 60px;
+    height: 60px;
+    border: 6px solid #edf2f7;
+    border-top-color: #667eea;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    margin: 0 auto 1rem;
+}
+
+@keyframes spin {
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+@media (max-width: 768px) {
+    .invoice-header {
+        flex-direction: column;
+        gap: 1rem;
+    }
+
+    .table-header,
+    .table-row {
+        grid-template-columns: 1fr;
+        gap: 0.5rem;
+    }
+
+    .col-qty,
+    .col-price,
+    .col-total {
+        text-align: left;
+    }
+
+    .table-footer {
+        grid-template-columns: 1fr;
+    }
+
+    .footer-label,
+    .footer-value {
+        text-align: left;
+    }
+}
