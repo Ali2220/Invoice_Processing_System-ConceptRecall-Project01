@@ -1,62 +1,52 @@
-import fs from 'fs/promises';
-import pdfParse from 'pdf-parse';
+// pdfService.js
+// Yeh file PDF files se text extract karne ka kaam karti hai
 
-/**
- * PDF Service
- * Handles PDF file parsing and text extraction
- */
-class PDFService {
-    /**
-     * Extract text content from a PDF file
-     * @param {string} filePath - Path to the PDF file
-     * @returns {Promise<string>} Extracted text content
-     * @throws {Error} If PDF is empty, unreadable, or parsing fails
-     */
-    async extractText(filePath) {
-        try {
-            // Read the PDF file as a buffer
-            const dataBuffer = await fs.readFile(filePath);
+import fs from "fs/promises";
+import pdfParse from "pdf-parse";
 
-            // Parse the PDF
-            const pdfData = await pdfParse(dataBuffer);
+// Pdf file ka content extract kro
+async function extractText(filePath) {
+  try {
+    // PDF file ko buffer ki tarah read karo
+    const dataBuffer = await fs.readFile(filePath);
 
-            // Extract text content
-            const text = pdfData.text.trim();
+    // pdf-parse library use karke text nikalo
+    const pdfData = await pdfParse(dataBuffer);
 
-            // Validate that we got some text
-            if (!text || text.length === 0) {
-                throw new Error('PDF appears to be empty or contains no readable text');
-            }
+    // Text ko trim karo (extra spaces hatao)
+    const text = pdfData.text.trim();
 
-            console.log(`✓ Successfully extracted ${text.length} characters from PDF`);
-
-            return text;
-        } catch (error) {
-            console.error('PDF parsing error:', error.message);
-
-            // Provide specific error messages
-            if (error.message.includes('Invalid PDF')) {
-                throw new Error('Invalid or corrupted PDF file');
-            } else if (error.message.includes('empty')) {
-                throw error;
-            } else {
-                throw new Error(`Failed to parse PDF: ${error.message}`);
-            }
-        }
+    // Check karo ke text empty toh nahi hai
+    if (!text) {
+      throw new Error("PDF appears to be empty or contains no readable text");
     }
 
-    /**
-     * Clean up uploaded file
-     * @param {string} filePath - Path to the file to delete
-     */
-    async deleteFile(filePath) {
-        try {
-            await fs.unlink(filePath);
-            console.log(`✓ Cleaned up temporary file: ${filePath}`);
-        } catch (error) {
-            console.error(`Warning: Could not delete file ${filePath}:`, error.message);
-        }
+    // Check karo ke text ki length 0 toh nahi hai
+    if (text.length === 0) {
+      throw new Error("PDF appears to be empty or contains no readable text");
     }
+
+    console.log(`Successfully extracted ${text.length} characters from PDF`);
+
+    return text;
+  } catch (error) {
+    console.error("PDF parsing error:", error.message);
+    throw new Error(error.message);
+  }
 }
 
-export default new PDFService();
+// jo pdf file upload hogi upload folder mai, usse delete kr denge takay storage na bhare.
+async function deleteFile(filePath) {
+  try {
+    const deletedFile = await fs.unlink(filePath);
+    console.log("File Deleted");
+  } catch (err) {
+    throw new Error(err.message);
+  }
+}
+
+// Export all functions as an object
+export default {
+  extractText,
+  deleteFile,
+};
