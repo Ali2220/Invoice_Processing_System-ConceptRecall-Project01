@@ -1,176 +1,75 @@
-import { useState } from "react";
-import apiService from "../services/api";
-import "./UploadPage.css";
+import { useState } from 'react';
+import axios from 'axios';
+import './UploadPage.css';
 
-/**
- * Upload Page Component
- * Allows users to upload invoice PDFs
- */
-function UploadPage() {
-  const [selectedFile, setSelectedFile] = useState(null);
-  const [uploading, setUploading] = useState(false);
-  const [message, setMessage] = useState(null);
-  const [error, setError] = useState(null);
+const UploadPage = () => {
+  // 1. Files aur messages ko yaad rakhne ke liye 'State'
+  const [file, setFile] = useState(null);
+  const [status, setStatus] = useState(''); // Success message ke liye
+  const [loading, setLoading] = useState(false); // Button disable karne ke liye
 
-  /**
-   * Handle file selection
-   */
+  // 2. Jab user file select kare
   const handleFileChange = (e) => {
-    const file = e.target.files[0];
-
-    if (file) {
-      // Validate file type
-      if (file.type !== "application/pdf") {
-        setError("Please select a PDF file");
-        setSelectedFile(null);
-        return;
-      }
-
-      // Validate file size (10MB)
-      if (file.size > 10 * 1024 * 1024) {
-        setError("File size must be less than 10MB");
-        setSelectedFile(null);
-        return;
-      }
-
-      setSelectedFile(file);
-      setError(null);
-      setMessage(null);
-    }
+    setFile(e.target.files[0]);
   };
 
-  /**
-   * Handle file upload
-   */
+  // 3. Jab "Upload" button dabaya jaye
   const handleUpload = async () => {
-    if (!selectedFile) {
-      setError("Please select a file first");
+    if (!file) {
+      alert("Pehle koi PDF file select karein!");
       return;
     }
 
-    setUploading(true);
-    setError(null);
-    setMessage(null);
+    setLoading(true);
+    setStatus('Processing... Intezar karein...');
+
+    // FormData: Jab humein file bhejni hoti hai, toh hum iska use karte hain
+    const formData = new FormData();
+    formData.append('invoice', file); // 'invoice' wahi naam hai jo backend dhoond raha hai
 
     try {
-      const response = await apiService.uploadInvoice(selectedFile);
+      const response = await axios.post('/api/invoice/upload', formData, {
+        headers: { 'Content-Type': 'multipart/form-data' },
+        withCredentials: true // Cookies (Token) saath bhejne ke liye
+      });
 
-      setMessage(
-        `✓ Invoice processed successfully! Invoice #${response.data.invoiceNumber}`,
-      );
-      setSelectedFile(null);
-
-      // Reset file input
-      document.getElementById("file-input").value = "";
+      if (response.data.success) {
+        setStatus('✓ Mubarak ho! Invoice process ho gayi.');
+        setFile(null); // File reset kar di
+      }
     } catch (err) {
-      setError(err.message);
+      setStatus('✗ Masla aa gaya: ' + (err.response?.data?.message || 'Upload failed'));
     } finally {
-      setUploading(false);
+      setLoading(false);
     }
-  };
-
-  /**
-   * Handle drag and drop
-   */
-  const handleDrop = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
-
-    const file = e.dataTransfer.files[0];
-    if (file) {
-      handleFileChange({ target: { files: [file] } });
-    }
-  };
-
-  const handleDragOver = (e) => {
-    e.preventDefault();
-    e.stopPropagation();
   };
 
   return (
-    <div className="upload-page">
-      <div className="upload-container">
-        <h1>📄 Upload Invoice</h1>
-        <p className="subtitle">
-          Upload a PDF invoice to extract and store data automatically
-        </p>
+    <div style={{ padding: '20px', textAlign: 'center' }}>
+      <h1>📥 Invoice Upload karein</h1>
+      <p>PDF file select karein aur AI us mein se data nikal lega.</p>
 
-        <div
-          className="drop-zone"
-          onDrop={handleDrop}
-          onDragOver={handleDragOver}
-        >
-          <div className="drop-zone-content">
-            <svg
-              className="upload-icon"
-              viewBox="0 0 24 24"
-              fill="none"
-              stroke="currentColor"
-            >
-              <path
-                strokeLinecap="round"
-                strokeLinejoin="round"
-                strokeWidth={2}
-                d="M7 16a4 4 0 01-.88-7.903A5 5 0 1115.9 6L16 6a5 5 0 011 9.9M15 13l-3-3m0 0l-3 3m3-3v12"
-              />
-            </svg>
-
-            <p className="drop-text">Drag and drop your PDF here</p>
-            <p className="drop-text-or">or</p>
-
-            <label htmlFor="file-input" className="file-label">
-              Choose File
-            </label>
-            <input
-              id="file-input"
-              type="file"
-              accept=".pdf,application/pdf"
-              onChange={handleFileChange}
-              className="file-input"
-            />
-          </div>
-        </div>
-
-        {selectedFile && (
-          <div className="file-info">
-            <p>
-              📎 Selected: <strong>{selectedFile.name}</strong>
-            </p>
-            <p>Size: {(selectedFile.size / 1024).toFixed(2)} KB</p>
-          </div>
-        )}
-
-        {message && <div className="message success">{message}</div>}
-
-        {error && <div className="message error">✗ {error}</div>}
-
-        <button
-          onClick={handleUpload}
-          disabled={!selectedFile || uploading}
-          className="upload-button"
-        >
-          {uploading ? (
-            <>
-              <span className="spinner"></span>
-              Processing...
-            </>
-          ) : (
-            "Upload & Process"
-          )}
-        </button>
-
-        <div className="info-box">
-          <h3>How it works:</h3>
-          <ol>
-            <li>Upload your invoice PDF</li>
-            <li>AI extracts text and structures the data</li>
-            <li>Invoice is saved to the database</li>
-            <li>View it in the dashboard</li>
-          </ol>
-        </div>
+      <div style={{ margin: '30px 0', border: '2px dashed #ccc', padding: '20px' }}>
+        <input
+          type="file"
+          accept=".pdf"
+          onChange={handleFileChange}
+        />
       </div>
+
+      {file && <p>Selected: <b>{file.name}</b></p>}
+
+      <button
+        onClick={handleUpload}
+        disabled={loading}
+        style={{ padding: '10px 20px', backgroundColor: '#007bff', color: 'white', border: 'none', cursor: 'pointer' }}
+      >
+        {loading ? 'Processing...' : 'Upload & Process'}
+      </button>
+
+      {status && <p style={{ marginTop: '20px', fontWeight: 'bold' }}>{status}</p>}
     </div>
   );
-}
+};
 
 export default UploadPage;

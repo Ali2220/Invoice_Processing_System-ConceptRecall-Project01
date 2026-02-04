@@ -1,170 +1,54 @@
 import { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import apiService from '../services/api';
-import './InvoiceDetailPage.css';
+import axios from 'axios';
 
-/**
- * Invoice Detail Page Component
- * Displays full invoice details including line items
- */
-function InvoiceDetailPage() {
-    const { id } = useParams();
-    const navigate = useNavigate();
+const InvoiceDetailPage = () => {
+    const { id } = useParams(); // URL se ID nikalne ke liye (e.g. /invoice/123)
     const [invoice, setInvoice] = useState(null);
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
+    const navigate = useNavigate();
 
-    /**
-     * Load invoice details on mount
-     */
     useEffect(() => {
-        loadInvoice();
+        const getDetails = async () => {
+            try {
+                // Sirf is ID wali invoice ka data mangwaya
+                const response = await axios.get(`/api/invoice/${id}`, { withCredentials: true });
+                setInvoice(response.data.data);
+            } catch (err) {
+                alert("Detail load nahi ho saki!");
+            } finally {
+                setLoading(false);
+            }
+        };
+        getDetails();
     }, [id]);
 
-    /**
-     * Fetch invoice details
-     */
-    const loadInvoice = async () => {
-        try {
-            setLoading(true);
-            setError(null);
-
-            const response = await apiService.getInvoiceById(id);
-            setInvoice(response.data);
-
-        } catch (err) {
-            setError(err.message);
-        } finally {
-            setLoading(false);
-        }
-    };
-
-    /**
-     * Format date
-     */
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'long',
-            day: 'numeric'
-        });
-    };
-
-    /**
-     * Format currency
-     */
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount);
-    };
-
-    if (loading) {
-        return (
-            <div className="detail-page">
-                <div className="detail-container">
-                    <div className="loading-state">
-                        <div className="spinner-large"></div>
-                        <p>Loading invoice details...</p>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (error) {
-        return (
-            <div className="detail-page">
-                <div className="detail-container">
-                    <div className="error-state">
-                        <p>✗ {error}</p>
-                        <button onClick={() => navigate('/dashboard')} className="back-button">
-                            ← Back to Dashboard
-                        </button>
-                    </div>
-                </div>
-            </div>
-        );
-    }
-
-    if (!invoice) {
-        return null;
-    }
+    if (loading) return <h2>Loading details...</h2>;
+    if (!invoice) return <h2>Invoice nahi mili!</h2>;
 
     return (
-        <div className="detail-page">
-            <div className="detail-container">
-                <button onClick={() => navigate('/dashboard')} className="back-button">
-                    ← Back to Dashboard
-                </button>
+        <div style={{ padding: '20px' }}>
+            <button onClick={() => navigate('/dashboard')}> ← Wapas Dashboard jayein</button>
 
-                <div className="invoice-detail-card">
-                    <div className="invoice-header">
-                        <div>
-                            <h1>Invoice #{invoice.invoiceNumber}</h1>
-                            <p className="invoice-meta">Created: {formatDate(invoice.createdAt)}</p>
-                        </div>
-                        <div className="invoice-total-badge">
-                            {formatCurrency(invoice.total)}
-                        </div>
-                    </div>
+            <div style={{ marginTop: '20px', padding: '20px', border: '2px solid #007bff', borderRadius: '10px' }}>
+                <h1>Invoice Detail: #{invoice.invoiceNumber}</h1>
+                <hr />
+                <p><b>Vendor Name:</b> {invoice.vendor}</p>
+                <p><b>Date:</b> {new Date(invoice.date).toLocaleDateString()}</p>
 
-                    <div className="invoice-info-grid">
-                        <div className="info-item">
-                            <span className="info-label">Vendor</span>
-                            <span className="info-value">{invoice.vendor}</span>
-                        </div>
+                <h3>Items (Saman ki list):</h3>
+                <ul>
+                    {invoice.items.map((item, index) => (
+                        <li key={index}>
+                            {item.name} - {item.quantity} x ${item.price} = <b>${item.quantity * item.price}</b>
+                        </li>
+                    ))}
+                </ul>
 
-                        <div className="info-item">
-                            <span className="info-label">Invoice Date</span>
-                            <span className="info-value">{formatDate(invoice.date)}</span>
-                        </div>
-
-                        <div className="info-item">
-                            <span className="info-label">Total Items</span>
-                            <span className="info-value">{invoice.items.length}</span>
-                        </div>
-                    </div>
-
-                    <div className="items-section">
-                        <h2>📦 Line Items</h2>
-
-                        <div className="items-table">
-                            <div className="table-header">
-                                <div className="col-name">Item Name</div>
-                                <div className="col-qty">Quantity</div>
-                                <div className="col-price">Unit Price</div>
-                                <div className="col-total">Total</div>
-                            </div>
-
-                            {invoice.items.map((item, index) => (
-                                <div key={index} className="table-row">
-                                    <div className="col-name">{item.name}</div>
-                                    <div className="col-qty">{item.quantity}</div>
-                                    <div className="col-price">{formatCurrency(item.price)}</div>
-                                    <div className="col-total">{formatCurrency(item.quantity * item.price)}</div>
-                                </div>
-                            ))}
-
-                            <div className="table-footer">
-                                <div className="footer-label">Grand Total</div>
-                                <div className="footer-value">{formatCurrency(invoice.total)}</div>
-                            </div>
-                        </div>
-                    </div>
-
-                    {invoice.rawText && (
-                        <details className="raw-text-section">
-                            <summary>📄 View Raw Extracted Text</summary>
-                            <pre className="raw-text">{invoice.rawText}</pre>
-                        </details>
-                    )}
-                </div>
+                <h2 style={{ color: 'blue' }}>Grand Total: ${invoice.total}</h2>
             </div>
         </div>
     );
-}
+};
 
 export default InvoiceDetailPage;

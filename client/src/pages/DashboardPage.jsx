@@ -1,197 +1,55 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import apiService from '../services/api';
-import './DashboardPage.css';
+import axios from 'axios';
 
-/**
- * Dashboard Page Component
- * Displays all invoices with export functionality
- */
-function DashboardPage() {
-    const [invoices, setInvoices] = useState([]);
+const DashboardPage = () => {
+    const [invoices, setInvoices] = useState([]); // Invoices ki list yahan save hogi
     const [loading, setLoading] = useState(true);
-    const [error, setError] = useState(null);
-    const [exporting, setExporting] = useState(false);
     const navigate = useNavigate();
 
-    /**
-     * Load invoices on component mount
-     */
+    // useEffect ka matlab: "Jab ye page load ho, toh foran ye kaam karo"
     useEffect(() => {
-        loadInvoices();
+        fetchInvoices();
     }, []);
 
-    /**
-     * Fetch all invoices from API
-     */
-    const loadInvoices = async () => {
+    const fetchInvoices = async () => {
         try {
-            setLoading(true);
-            setError(null);
-
-            const response = await apiService.getAllInvoices();
-            setInvoices(response.data);
-
+            // Backend se saari invoices mangwayi
+            const response = await axios.get('/api/invoice', { withCredentials: true });
+            setInvoices(response.data.data || []); // Data state mein save kar liya
         } catch (err) {
-            setError(err.message);
+            console.error("Invoices load nahi ho sakein", err);
         } finally {
             setLoading(false);
         }
     };
 
-    /**
-     * Export invoices to CSV
-     */
-    const handleExport = async () => {
-        try {
-            setExporting(true);
-            await apiService.exportInvoices();
-        } catch (err) {
-            alert(`Export failed: ${err.message}`);
-        } finally {
-            setExporting(false);
-        }
-    };
-
-    /**
-     * Navigate to invoice detail page
-     */
-    const viewInvoice = (id) => {
-        navigate(`/invoice/${id}`);
-    };
-
-    /**
-     * Format date for display
-     */
-    const formatDate = (dateString) => {
-        const date = new Date(dateString);
-        return date.toLocaleDateString('en-US', {
-            year: 'numeric',
-            month: 'short',
-            day: 'numeric'
-        });
-    };
-
-    /**
-     * Format currency
-     */
-    const formatCurrency = (amount) => {
-        return new Intl.NumberFormat('en-US', {
-            style: 'currency',
-            currency: 'USD'
-        }).format(amount);
-    };
+    if (loading) return <h2>Loading... Intezar karein...</h2>;
 
     return (
-        <div className="dashboard-page">
-            <div className="dashboard-container">
-                <div className="dashboard-header">
-                    <div>
-                        <h1>📊 Invoice Dashboard</h1>
-                        <p className="subtitle">View and manage all processed invoices</p>
-                    </div>
+        <div style={{ padding: '20px' }}>
+            <h1>📊 My Invoices</h1>
 
-                    <div className="header-actions">
-                        <button
-                            onClick={handleExport}
-                            disabled={invoices.length === 0 || exporting}
-                            className="export-button"
+            {invoices.length === 0 ? (
+                <p>Abhi koi invoice nahi hai. Pehle upload karein!</p>
+            ) : (
+                <div style={{ display: 'grid', gap: '15px' }}>
+                    {invoices.map((inv) => (
+                        <div
+                            key={inv._id}
+                            style={{ border: '1px solid #ddd', padding: '15px', borderRadius: '8px', cursor: 'pointer', backgroundColor: '#f9f9f9' }}
+                            onClick={() => navigate(`/invoice/${inv._id}`)} // Click karne par detail page par jaye ga
                         >
-                            {exporting ? 'Exporting...' : '📥 Export CSV'}
-                        </button>
-                    </div>
+                            <h3 style={{ margin: 0 }}>Invoice #{inv.invoiceNumber}</h3>
+                            <p>Vendor: <b>{inv.vendor}</b></p>
+                            <p>Total: <b style={{ color: 'green' }}>${inv.total}</b></p>
+                            <small>Click karein details dekhne ke liye</small>
+                        </div>
+                    ))}
                 </div>
-
-                {loading && (
-                    <div className="loading-state">
-                        <div className="spinner-large"></div>
-                        <p>Loading invoices...</p>
-                    </div>
-                )}
-
-                {error && (
-                    <div className="error-state">
-                        <p>✗ {error}</p>
-                        <button onClick={loadInvoices} className="retry-button">
-                            Retry
-                        </button>
-                    </div>
-                )}
-
-                {!loading && !error && invoices.length === 0 && (
-                    <div className="empty-state">
-                        <svg className="empty-icon" viewBox="0 0 24 24" fill="none" stroke="currentColor">
-                            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" />
-                        </svg>
-                        <h2>No invoices yet</h2>
-                        <p>Upload your first invoice to get started</p>
-                        <button onClick={() => navigate('/')} className="upload-link-button">
-                            Upload Invoice
-                        </button>
-                    </div>
-                )}
-
-                {!loading && !error && invoices.length > 0 && (
-                    <>
-                        <div className="stats-bar">
-                            <div className="stat-card">
-                                <div className="stat-value">{invoices.length}</div>
-                                <div className="stat-label">Total Invoices</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-value">
-                                    {formatCurrency(invoices.reduce((sum, inv) => sum + inv.total, 0))}
-                                </div>
-                                <div className="stat-label">Total Amount</div>
-                            </div>
-                            <div className="stat-card">
-                                <div className="stat-value">
-                                    {invoices.reduce((sum, inv) => sum + inv.items.length, 0)}
-                                </div>
-                                <div className="stat-label">Total Items</div>
-                            </div>
-                        </div>
-
-                        <div className="invoice-grid">
-                            {invoices.map((invoice) => (
-                                <div
-                                    key={invoice._id}
-                                    className="invoice-card"
-                                    onClick={() => viewInvoice(invoice._id)}
-                                >
-                                    <div className="invoice-card-header">
-                                        <h3>#{invoice.invoiceNumber}</h3>
-                                        <span className="invoice-date">{formatDate(invoice.date)}</span>
-                                    </div>
-
-                                    <div className="invoice-card-body">
-                                        <div className="invoice-vendor">
-                                            <span className="label">Vendor:</span>
-                                            <span className="value">{invoice.vendor}</span>
-                                        </div>
-
-                                        <div className="invoice-total">
-                                            <span className="label">Total:</span>
-                                            <span className="value total-amount">{formatCurrency(invoice.total)}</span>
-                                        </div>
-
-                                        <div className="invoice-items">
-                                            <span className="label">Items:</span>
-                                            <span className="value">{invoice.items.length}</span>
-                                        </div>
-                                    </div>
-
-                                    <div className="invoice-card-footer">
-                                        <span className="view-details">View Details →</span>
-                                    </div>
-                                </div>
-                            ))}
-                        </div>
-                    </>
-                )}
-            </div>
+            )}
         </div>
     );
-}
+};
 
 export default DashboardPage;
