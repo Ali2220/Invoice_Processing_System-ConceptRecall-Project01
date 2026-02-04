@@ -80,8 +80,10 @@ async function getAllInvoices(req, res) {
   try {
     // Fetch all invoices, sorted by creation date (newest first)
     const invoices = await Invoice.find()
-      .select("-rawText") // Exclude raw text for performance
-      .sort({ createdAt: -1 });
+      .select("-rawText") // rawText ko hta dia, takay response acha ho.
+      .sort({ createdAt: -1 }); // descending order mein sort karo, takay new invoices pehle aayein
+
+    console.log("All Invoices: ", invoices);
 
     res.status(200).json({
       success: true,
@@ -105,15 +107,6 @@ async function getAllInvoices(req, res) {
 async function getInvoiceById(req, res) {
   try {
     const id = req.params.id;
-
-    // Validate MongoDB ObjectId format
-    const objectIdPattern = /^[0-9a-fA-F]{24}$/;
-    if (!objectIdPattern.test(id)) {
-      return res.status(400).json({
-        success: false,
-        error: "Invalid invoice ID format",
-      });
-    }
 
     // Fetch invoice with all details including items
     const invoice = await Invoice.findById(id);
@@ -145,57 +138,39 @@ async function getInvoiceById(req, res) {
  */
 async function exportInvoices(req, res) {
   try {
-    // Fetch all invoices
-    const invoices = await Invoice.find().select("-rawText");
+    // 1. Get all invoices
+    const invoices = await Invoice.find();
 
-    if (invoices.length === 0) {
+    if (!invoices.length) {
       return res.status(404).json({
         success: false,
-        error: "No invoices found to export",
+        error: "No invoices found",
       });
     }
 
-    // Flatten invoice data for CSV export
-    const flattenedData = [];
-    for (let i = 0; i < invoices.length; i++) {
-      const invoice = invoices[i];
-      flattenedData.push({
-        invoiceNumber: invoice.invoiceNumber,
-        vendor: invoice.vendor,
-        date: invoice.date.toISOString().split("T")[0],
-        total: invoice.total,
-        itemCount: invoice.items.length,
-        createdAt: invoice.createdAt.toISOString(),
-      });
-    }
+    // 2. Convert invoices into simple objects
+    const data = invoices.map((inv) => ({
+      invoiceNumber: inv.invoiceNumber,
+      vendor: inv.vendor,
+      date: inv.date.toISOString().split("T")[0],
+      total: inv.total,
+      itemCount: inv.items.length,
+    }));
 
-    // Define CSV fields
-    const fields = [
-      { label: "Invoice Number", value: "invoiceNumber" },
-      { label: "Vendor", value: "vendor" },
-      { label: "Date", value: "date" },
-      { label: "Total", value: "total" },
-      { label: "Item Count", value: "itemCount" },
-      { label: "Created At", value: "createdAt" },
-    ];
+    // 3. Create CSV
+    const parser = new Parser();
+    const csv = parser.parse(data);
+    console.log("CSV wala data", csv);
 
-    // Convert to CSV
-    const json2csvParser = new Parser({ fields });
-    const csv = json2csvParser.parse(flattenedData);
-
-    // Set response headers for file download
+    // 4. Send CSV file / Download
     res.setHeader("Content-Type", "text/csv");
     res.setHeader("Content-Disposition", "attachment; filename=invoices.csv");
 
-    res.status(200).send(csv);
-
-    console.log(`Exported ${invoices.length} invoices to CSV`);
-  } catch (error) {
-    console.error("Export error:", error.message);
-
+    res.send(csv);
+  } catch (err) {
     res.status(500).json({
       success: false,
-      error: "Failed to export invoices",
+      error: "Something went wrong",
     });
   }
 }

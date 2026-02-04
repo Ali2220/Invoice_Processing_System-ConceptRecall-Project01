@@ -85,12 +85,12 @@ Return only the JSON object, nothing else.
 
     // NAYA SDK: Direct response.text property
     const text = response.text;
-    console.log("Received response from Gemini AI");
+    console.log("Received response from Gemini AI:", text);
 
     // Response mein se JSON nikalo
     const structuredData = parseGeminiResponse(text);
 
-    // Check karo ke data sahi hai ya nahi
+    // Check karo ke data mojod hai or sahi hai ya nahi
     validateInvoiceData(structuredData);
 
     return structuredData;
@@ -112,55 +112,6 @@ Return only the JSON object, nothing else.
   }
 }
 
-/*  MY Code 😀 */
-// async function structureInvoiceData(rawText) {
-//   try {
-//     initializeGemini();
-
-//     const prompt = `
-//             You are an expert invoice data extraction system. Analyze the following invoice text and extract structured data.
-
-// INVOICE TEXT:
-// ${rawText}
-
-// INSTRUCTIONS:
-// 1. Extract the invoice number, vendor name, date, and total amount
-// 2. Extract all line items with their name, quantity, and price
-// 3. Return ONLY valid JSON with no additional text or markdown
-// 4. Use the exact format shown below
-// 5. If a field is not found, use reasonable defaults (e.g., "Unknown" for vendor, current date for date)
-// 6. Ensure all numbers are valid (no currency symbols)
-// 7. Date should be in ISO format (YYYY-MM-DD)
-
-// REQUIRED JSON FORMAT:
-// {
-//   "invoiceNumber": "string",
-//   "vendor": "string",
-//   "date": "YYYY-MM-DD",
-//   "total": number,
-//   "items": [
-//     {
-//       "name": "string",
-//       "quantity": number,
-//       "price": number
-//     }
-//   ]
-// }
-
-// Return only the JSON object, nothing else.
-// `;
-
-//     const response = await ai.models.generateContent({
-//       model: "gemini-3-flash-preview",
-//       content: prompt,
-//     });
-
-//     const text = response.text;
-//     const structuredData = parseGeminiResponse(text);
-//     console.log(structuredData);
-//   } catch (err) {}
-// }
-
 /**
  * Read Gemini's response and extract JSON
  * @param {string} text - Raw response from Gemini
@@ -171,12 +122,13 @@ function parseGeminiResponse(text) {
   try {
     // Pehle extra spaces hatao
     let cleanText = text.trim();
-
-    // Agar response mein markdown code block hai toh hatao
+    // ```json (markdown start tag) hatao
+    // ``` (markdown end tag) hatao
+    // ai response mein kabhi kabhi markdown tags aa jate hain, unko remove kra hai Ali tumne
     cleanText = cleanText.replace(/```json/g, "");
     cleanText = cleanText.replace(/```/g, "");
 
-    // JSON object dhoondo curly braces se
+    // hum curly braces is liye dhond rhe hain kyunki valid JSON wahi hota hai jo curly braces ke andar hota hai
     const startIndex = cleanText.indexOf("{");
     const endIndex = cleanText.lastIndexOf("}");
 
@@ -185,7 +137,7 @@ function parseGeminiResponse(text) {
       throw new Error("No valid JSON found in AI response");
     }
 
-    // JSON part nikalo
+    // JSON part nikalo. For example: {Hello this is ai generated}
     const jsonString = cleanText.substring(startIndex, endIndex + 1);
 
     // String ko JSON object mein convert karo
@@ -197,76 +149,41 @@ function parseGeminiResponse(text) {
 }
 
 /**
- * Validate structured invoice data
+ * ValidateInvoiceData function mai wo data jae ga jo parseGemniResponse se filter ho kr aya hai. For example: {"invoiceNumber": "001", ...}
  * @param {Object} data - Invoice data to validate
  */
 function validateInvoiceData(data) {
-  const errors = [];
-
-  // Check invoice number
-  if (!data.invoiceNumber) {
-    errors.push("Missing invoiceNumber");
-  } else if (typeof data.invoiceNumber !== "string") {
-    errors.push("Invalid invoiceNumber (should be string)");
+  // Basic object check
+  if (!data || typeof data !== "object") {
+    throw new Error("Invalid invoice data");
   }
 
-  // Check vendor
-  if (!data.vendor) {
-    errors.push("Missing vendor");
-  } else if (typeof data.vendor !== "string") {
-    errors.push("Invalid vendor (should be string)");
+  // Required top-level fields
+  if (!data.invoiceNumber || !data.vendor || !data.date) {
+    throw new Error("Missing required invoice fields");
   }
 
-  // Check date
-  if (!data.date) {
-    errors.push("Missing date");
+  // Total must be a positive number
+  if (typeof data.total !== "number" || data.total < 0) {
+    throw new Error("Invalid total amount");
   }
 
-  // Check total
-  if (typeof data.total !== "number") {
-    errors.push("Invalid total (should be number)");
-  } else if (data.total < 0) {
-    errors.push("Total cannot be negative");
+  // Items must be a non-empty array
+  if (!Array.isArray(data.items) || data.items.length === 0) {
+    throw new Error("Invoice items are missing");
   }
 
-  // Check items array
-  if (!data.items) {
-    errors.push("Missing items");
-  } else if (!Array.isArray(data.items)) {
-    errors.push("Invalid items (should be array)");
-  } else if (data.items.length === 0) {
-    errors.push("Items array is empty");
-  } else {
-    // Har item check karo
-    for (let i = 0; i < data.items.length; i++) {
-      const item = data.items[i];
+  // Simple check for each item
+  for (let i = 0; i < data.items.length; i++) {
+    const item = data.items[i];
 
-      // Check item name
-      if (!item.name) {
-        errors.push(`Item ${i + 1}: Missing name`);
-      } else if (typeof item.name !== "string") {
-        errors.push(`Item ${i + 1}: Invalid name (should be string)`);
-      }
-
-      // Check quantity
-      if (typeof item.quantity !== "number") {
-        errors.push(`Item ${i + 1}: Invalid quantity (should be number)`);
-      } else if (item.quantity < 0) {
-        errors.push(`Item ${i + 1}: Quantity cannot be negative`);
-      }
-
-      // Check price
-      if (typeof item.price !== "number") {
-        errors.push(`Item ${i + 1}: Invalid price (should be number)`);
-      } else if (item.price < 0) {
-        errors.push(`Item ${i + 1}: Price cannot be negative`);
-      }
+    if (
+      !item.name ||
+      typeof item.quantity !== "number" ||
+      typeof item.price !== "number"
+    ) {
+      throw new Error(`Invalid item at position ${i + 1}`);
     }
-  }
-
-  // Agar koi error hai toh throw karo
-  if (errors.length > 0) {
-    throw new Error(`Invoice data validation failed: ${errors.join(", ")}`);
   }
 
   console.log("Invoice data validation passed");
