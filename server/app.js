@@ -1,9 +1,10 @@
 import dotenv from "dotenv";
 dotenv.config();
 import express from "express";
-import mongoose from "mongoose";
 import cors from "cors";
+import cookieParser from "cookie-parser";
 import invoiceRoutes from "./routes/invoiceRoutes.js";
+import authRoutes from "./routes/authRoutes.js";
 import connectDB from "./config/db.js";
 
 connectDB();
@@ -15,9 +16,11 @@ const PORT = process.env.PORT || 5000;
 app.use(cors());
 app.use(express.json());
 app.use(express.urlencoded({ extended: true }));
+app.use(cookieParser());
 
 // Routes
 app.use("/api/invoice", invoiceRoutes);
+app.use("/api/auth", authRoutes);
 
 // Global error handler
 app.use((err, req, res, next) => {
